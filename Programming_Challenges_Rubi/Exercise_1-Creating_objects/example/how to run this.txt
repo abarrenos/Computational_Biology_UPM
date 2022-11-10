@@ -1,8 +1,0 @@
-1) unzip
-2) go into the "examples" folder
-3) ruby main.rb
-4) see output?   Now look at the code in main.rb and the Gene object in gene.rb
-5) Voila!  :-)
-
-
-

@@ -3,6 +3,7 @@ require 'rest-client'
 class InteractionNetwork
     
     @@interaction_dict = {}
+    @@max_depth = 0
 
     def self.find_interactions(gene_list)
 
@@ -64,13 +65,16 @@ class InteractionNetwork
     end
 
     def self.build_network(gene)
- 
-      network = [gene.to_sym]
-      interactors = @@interaction_dict[gene.to_sym]
+      
+      @@max_depth += 1
+      while @@max_depth < 5
+         network = [gene.to_sym]
+         interactors = @@interaction_dict[gene.to_sym]
 
-      unless interactors.nil?
-        network += interactors
-        interactors.each {|int| network += build_network(int, @@interaction_dict)}
+         unless interactors.nil?
+           network += interactors
+           interactors.each {|int| network += build_network(int, @@interaction_dict)}
+         end
       end
       return network.uniq
     end

@@ -2,10 +2,36 @@ require 'rest-client'
 
 class InteractionNetwork
     
-    @@interaction_dict = {}
-    @@max_depth = 0
+    attr_accessor :query_gene
+    attr_accessor :interactors
+    attr_accessor :depth
 
-    def self.find_interactions(gene_list)
+    @@interaction_dict = {}
+    @@network_depth = 0
+
+    def initialize(gene:, interaction_dict: @@interaction_dict, max_depth: 3)
+    
+        @query_gene = gene.to_sym
+        @interactors = InteractionNetwork.network(gene_id: gene, \
+                                                from_dict: interaction_dict, \
+                                                max_depth: max_depth)
+        @depth = @@network_depth
+        @@network_depth = 0
+    
+    end
+
+    def interactors_within(gene_list:)
+        
+        int_network = Array.new
+        gene_list = gene_list.map { |x| x.to_sym }
+        self.interactors.each {|gene|
+            int_network << gene if gene_list.include?(gene)
+        }
+        return int_network
+
+    end
+
+    def self.find_interactions(gene_list:)
 
         intact_hash = Hash.new
     
@@ -42,7 +68,7 @@ class InteractionNetwork
             '''
                 # Introduce a quality filter
 
-                unless score.to_f < 0.5
+                unless score.to_f < 0.3
                     record_list += intact_genes_filtered        # Combine the interactors from different records
                     record_list.uniq!                           # Remove redundant interactors
                     record_list.delete(gene_id.to_sym)          # Remove the query gene from its interactor list
@@ -64,19 +90,28 @@ class InteractionNetwork
         # clean_interactions = first_interactions.delete_if {|key,value| value.empty? }
     end
 
-    def self.build_network(gene)
-      
-      @@max_depth += 1
-      while @@max_depth < 5
-         network = [gene.to_sym]
-         interactors = @@interaction_dict[gene.to_sym]
+    private
 
-         unless interactors.nil?
-           network += interactors
-           interactors.each {|int| network += build_network(int, @@interaction_dict)}
-         end
-      end
-      return network.uniq
+    def InteractionNetwork.network(gene_id:, from_dict: @@interaction_dict, max_depth: 3)
+      
+        if @@interaction_dict.empty? then
+            abort("Aborting: No interactions provided, find interactions before building the network.")
+        end
+
+        if @@network_depth >= max_depth
+            return []
+        else
+            @@network_depth += 1
+            puts "Finding interactions with depth = #{@@network_depth}"
+            network = [gene_id.to_sym]
+            interactors = @@interaction_dict[gene_id.to_sym]
+
+            unless interactors.nil?
+                network += interactors
+                interactors.each {|int| network += network(gene_id: int, max_depth: max_depth)}
+            end
+            return network.uniq
+        end
     end
     
     gene_list = Array.new
@@ -85,11 +120,26 @@ class InteractionNetwork
         unless gene.match(/AT\dG\d{5}/i) # Check if genes belong to Arabidopsis and save each gene in the array.
             abort("ERROR: the gene list have some errors. #{gene} has not correct format") 
         end
-        gene_list <<  gene.upcase!} 
+        gene_list <<  gene.upcase!}
     
-        
-    interaction_dict = InteractionNetwork.find_interactions(gene_list)
-   
     
-    InteractionNetwork.build_network(gene = "AT2G13360")
+    InteractionNetwork.find_interactions(gene_list: gene_list)
+    
+    gene_list.each {|gene|
+
+        network = InteractionNetwork.new(gene: gene, max_depth: 3)
+        print network.query_gene
+        print "\t", network.interactors.length
+        print "\t", network.depth
+
+        print "\n", network.interactors
+        print "\t", @@interaction_dict[gene.to_sym].length unless @@interaction_dict[gene.to_sym].nil?
+        puts 
+
+        print "\n", network.interactors_within(gene_list: gene_list)
+        puts
+        puts
+      }
+
+    
 end

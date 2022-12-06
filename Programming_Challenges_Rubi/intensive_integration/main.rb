@@ -46,4 +46,5 @@ print gene_list
 
 
 
-InteractionNetwork.find_interactions(gene_list[0..-1])
+#InteractionNetwork.find_interactions(gene_list[0..-1])
+

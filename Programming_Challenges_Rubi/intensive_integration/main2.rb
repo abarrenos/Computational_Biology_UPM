@@ -37,8 +37,8 @@ gene_file = CSV.read(gene_information, col_sep: "\t")
 
 s2 = fetch(url: "https://doi.org/10.1371/journal.pone.0108567.s001")
 gene_list = []
-gene_file.each do |line| # Controling the format of the genes list
-  unless line[0].match(/AT\dG\d{5}/i) # Ignoring case sensitive in match method https://stackoverflow.com/questions/41149008/case-insensitive-regex-matching-in-ruby
+gene_file.each do |line|
+  unless line[0].match(/AT\dG\d{5}/i)
     abort("ERROR: the gene list have some errors. #{line[0]} has not correct format")
   else
   gene_list.append([line[0].upcase])
@@ -48,6 +48,28 @@ end
 
 
 InteractionNetwork.new(depth=3, gene_list=gene_list)
+paths = InteractionNetwork.significant_paths
+
+p paths.keys
+puts paths.values
 #puts InteractionNetwork.full_interactions
 #puts InteractionNetwork.full_network
 #puts InteractionNetwork.multi_gene_list
+
+=begin
+response = RestClient::Request.execute(  #  or you can use the 'fetch' function we created last class
+  method: :get,
+  url: "https://doi.org/10.1371/journal.pone.0108567",
+  headers: {accept: 'text/plain'}
+#  headers: {accept: 'application/json'}
+#  headers: {accept: 'text/turtle'}
+)  
+puts response.body.force_encoding('UTF-8')
+=end
+#puts s2.body.force_encoding('UTF-8')
+
+
+
+base_url = "www.ebi.ac.uk/intact/ws/interaction/findInteractions/{query}"
+#puts gene_info
+

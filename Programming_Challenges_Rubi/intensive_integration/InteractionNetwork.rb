@@ -6,14 +6,17 @@ require 'rgl/base'
 require 'rgl/adjacency'
 require 'rgl/connected_components'
 require "rgl/implicit"
+require "rgl/dijkstra"
+require "rgl/edge_properties_map"
 
 class InteractionNetwork
     
-    attr_accessor :network, :gene_list
+    attr_accessor :gene_list
 
     #All networks of all objects called, representing the full known network
     @@full_network = RGL::AdjacencyGraph.new
-
+    @@edge_weights = {}
+    @@significant_paths = {}
     #All interactions, dertivitave of full_network for ease
     @@full_interactions = []
     @@multi_gene_list = {1=> Set[],
@@ -23,50 +26,55 @@ class InteractionNetwork
                         5 => Set[]
                     }
 
-    def initialize(depth=1, gene_list=nil, network=nil)
+    def initialize(depth=1, gene_list=nil)
         if depth == 1
             self.find_first_interactors(gene_list, 1)
             @@full_interactions.each do |query|
                 query.each do |edge|
                     source, target = edge.split("<->")
                     @@full_network.add_edge(source, target)
+                    @@edge_weights[[source, target]] = 1
                 end
             end
         end 
 
         if depth == 2
             self.find_first_interactors(gene_list, 1)
-            self.find_first_interactors(@@multi_gene_list[1], 2)
+            self.find_first_interactors(@@multi_gene_list[2], 2)
 
             @@full_interactions.each do |query|
                 query.each do |edge|
                     source, target = edge.split("<->")
                     @@full_network.add_edge(source, target)
+                    @@edge_weights[[source, target]] = 1
                 end
             end
         end
         if depth == 3
             self.find_first_interactors(gene_list, 1)
-            self.find_first_interactors(@@multi_gene_list[1], 2)
-            self.find_first_interactors(@@multi_gene_list[2], 3)
+            self.find_first_interactors(@@multi_gene_list[2], 2)
+            self.find_first_interactors(@@multi_gene_list[3], 3)
             @@full_interactions.each do |query|
                 query.each do |edge|
                     source, target = edge.split("<->")
                     @@full_network.add_edge(source, target)
+                    @@edge_weights[[source, target]] = 1
                 end
             end
         end
 
         if depth == 4
             self.find_first_interactors(gene_list, 1)
-            self.find_first_interactors(@@multi_gene_list[1], 2)
-            self.find_first_interactors(@@multi_gene_list[2], 3)
-            self.find_first_interactors(@@multi_gene_list[3], 4)
+            self.find_first_interactors(@@multi_gene_list[2], 2)
+            self.find_first_interactors(@@multi_gene_list[3], 3)
+            self.find_first_interactors(@@multi_gene_list[4], 4)
             
             @@full_interactions.each do |query|
                 query.each do |edge|
                     source, target = edge.split("<->")
                     @@full_network.add_edge(source, target)
+                    @@edge_weights[[source, target]] = 1
+
                 end
             end
         end
@@ -79,38 +87,28 @@ class InteractionNetwork
         number_significant_components = 0
 
         @@full_network.to_undirected.each_connected_component { |c| connected_components <<  c }
-        p connected_components.length
+        
         connected_components.each do |component|
             if (component & seed_genes).any?
                 number_significant_components += 1
                 
                 hits = component & seed_genes
-                hits.each do |hit|
-                    adjacent_vertices = @@full_network.adjacent_vertices(hit)
-                    adjacent_vertices  = adjacent_vertices & seed_genes
-                    if adjacent_vertices.any?
-                        p "Connected component number #{number_significant_components}"
-                        adjacent_vertices.each do |neighbor|  
-                            p [hit, neighbor].join("<->")
-                        end
-                    end 
+                hits.combination(2).to_a.each do |hit|
+                    source, target =  hit[0..1]
+                    path = @@full_network.dijkstra_shortest_path(@@edge_weights, source=source, target=target)
+                    if path.length <= 4
+                        @@significant_paths[[source, target]] = path.join("<->")
+                    end
                 end
             end
-            
         end
-
-=begin
-        @@full_network.each_connected_component do |cc|
-            puts cc
-            puts "######"
-            
-        end
-=end
+        puts  "#{number_significant_components} significant components"
     end
 
     def find_first_interactors(gene_list, current_degree)
         first_degree_hits = []
-        puts "Searching #{current_degree} neighbors...."
+        length_search = gene_list.length
+        puts "Searching #{current_degree} degree neighbors.... O(#{length_search}^2)"
         gene_list.each do |query|
             @@multi_gene_list[current_degree].add(query)
             query_hits = self.find_interactions(query[0])
@@ -159,7 +157,7 @@ class InteractionNetwork
                 next if organismA != organismB
 
                 #Interaction is low quality
-                next if quality < 0.5
+                next if quality < 0.45
       
                 #Ens code not found for gene a or b
                 next if ens_geneA.empty? or ens_geneB.empty?
@@ -196,6 +194,10 @@ class InteractionNetwork
 
     def self.multi_gene_list
         @@multi_gene_list
+    end
+
+    def self.significant_paths
+        @@significant_paths
     end
 
 end

@@ -1,5 +1,5 @@
 
-#require './class_interaction.rb' It is throwing an error bc the interaction class is not finito
+require_relative './Interactions_Adrian'
 
 # Checking if the arguments required are specified 
 '''
@@ -34,17 +34,33 @@ gene_list = Array.new       # Creating an empty array for saving each gene of th
 # Source: https://www.rubyguides.com/2015/05/working-with-files-ruby/
 
 File.foreach("./documents/ArabidopsisSubNetwork_GeneList.txt"){ |line|
-    gene = line.gsub("\n",'')   # We eliminate metacharacter \n
-    unless gene.match(/AT\dG\d{5}/i)
+    gene = line.gsub("\n",'')        # We eliminate metacharacter \n
+    unless gene.match(/AT\dG\d{5}/i) # Check if genes belong to Arabidopsis and save each gene in the array.
         abort("ERROR: the gene list have some errors. #{gene} has not correct format") 
     end
-    gene_list <<  gene}      # Check if genes belong to Arabidopsis and save each gene in the array.
-                                
-print gene_list
+    gene_list <<  gene.upcase!}
 
 ########### --------------- Main Cycle ---------------- ##########
 
+InteractionNetwork.find_interactions(gene_list: gene_list)
+    
+gene_list.each {|gene|
 
+    network = InteractionNetwork.new(gene: gene, max_depth: 25)
+    if network.interactors_within(gene_list: gene_list).length > 2
+        print network.query_gene
+        print "\t", network.interactors.length
+        print "\t", network.depth
+        '''
+        print "\n", network.interactors
+        print "\t", @@interaction_dict[gene.to_sym].length unless @@interaction_dict[gene.to_sym].nil?
+        '''
+        puts 
 
+        print "\n", network.interactors_within(gene_list: gene_list)
+        puts
+        puts
+    end
+}
 #InteractionNetwork.find_interactions(gene_list[0..-1])
 

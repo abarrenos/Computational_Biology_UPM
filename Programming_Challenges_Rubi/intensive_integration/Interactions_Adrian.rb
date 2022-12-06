@@ -11,6 +11,8 @@ class InteractionNetwork
 
     def initialize(gene:, interaction_dict: @@interaction_dict, max_depth: 3)
     
+        print "\nFinding interactions with depth..."
+
         @query_gene = gene.to_sym
         @interactors = InteractionNetwork.network(gene_id: gene, \
                                                 from_dict: interaction_dict, \
@@ -21,7 +23,7 @@ class InteractionNetwork
     end
 
     def interactors_within(gene_list:)
-        
+
         int_network = Array.new
         gene_list = gene_list.map { |x| x.to_sym }
         self.interactors.each {|gene|
@@ -102,7 +104,7 @@ class InteractionNetwork
             return []
         else
             @@network_depth += 1
-            puts "Finding interactions with depth = #{@@network_depth}"
+            print ", #{@@network_depth}"
             network = [gene_id.to_sym]
             interactors = @@interaction_dict[gene_id.to_sym]
 
@@ -127,18 +129,21 @@ class InteractionNetwork
     
     gene_list.each {|gene|
 
-        network = InteractionNetwork.new(gene: gene, max_depth: 3)
-        print network.query_gene
-        print "\t", network.interactors.length
-        print "\t", network.depth
+        network = InteractionNetwork.new(gene: gene, max_depth: 125)
+        if network.interactors_within(gene_list: gene_list).length > 2
+            print network.query_gene
+            print "\t", network.interactors.length
+            print "\t", network.depth
+            '''
+            print "\n", network.interactors
+            print "\t", @@interaction_dict[gene.to_sym].length unless @@interaction_dict[gene.to_sym].nil?
+            '''
+            puts 
 
-        print "\n", network.interactors
-        print "\t", @@interaction_dict[gene.to_sym].length unless @@interaction_dict[gene.to_sym].nil?
-        puts 
-
-        print "\n", network.interactors_within(gene_list: gene_list)
-        puts
-        puts
+            print "\n", network.interactors_within(gene_list: gene_list)
+            puts
+            puts
+        end
       }
 
     

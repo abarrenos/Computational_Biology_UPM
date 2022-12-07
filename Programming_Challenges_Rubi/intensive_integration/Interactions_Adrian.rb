@@ -1,12 +1,16 @@
 require 'rest-client'
+require_relative './class_genes'
+
 
 class InteractionNetwork
     
     attr_accessor :query_gene
     attr_accessor :interactors
     attr_accessor :max_depth
+    attr_accessor :features
 
-    @@interaction_dict = {}
+    @@interaction_dict = Hash.new
+    @@all_networks = Array.new
 
     def initialize(gene:, interaction_dict: @@interaction_dict, max_depth: 3)
     
@@ -15,7 +19,13 @@ class InteractionNetwork
                                                 from_hash: interaction_dict, \
                                                 max_depth: max_depth)
         @max_depth = max_depth
+        @features = GeneFeatures.new
+        @@all_networks << self
     
+    end
+
+    def self.get_all_networks
+        return @@all_networks
     end
 
     def interactors_within(gene_list:)
@@ -74,15 +84,12 @@ class InteractionNetwork
                     intact_hash[gene_id.to_sym] = record_list   # Append the results for every query gene to a Hash
                 end
             end
-    
         #print "\n\n", gene_id.to_s, " interactors: ", record_list.length
         #print "\n", Hash[gene_id.to_sym => record_list]
-    
         end
         
         @@interaction_dict = intact_hash
         return intact_hash
-        
         # Results are contained in intact_hash
         # We can omit genes without reported interactions:
         # clean_interactions = first_interactions.delete_if {|key,value| value.empty? }

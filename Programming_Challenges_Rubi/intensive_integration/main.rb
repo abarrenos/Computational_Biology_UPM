@@ -1,5 +1,6 @@
 
 require_relative './Interactions_Adrian'
+require_relative './class_genes'
 
 # Checking if the arguments required are specified 
 '''
@@ -40,24 +41,39 @@ File.foreach("./documents/ArabidopsisSubNetwork_GeneList.txt"){ |line|
     end
     gene_list <<  gene.upcase!}
 
-########### --------------- Main Cycle ---------------- ##########
+### ---------- Find interactions and generate Interaction Network ----------- ###
 
 InteractionNetwork.find_interactions(gene_list: gene_list)
 
 gene_list.each {|gene|
 
-    network = InteractionNetwork.new(gene: gene, max_depth: 3)
+    network = InteractionNetwork.new(gene: gene, max_depth: 5)
     if network.interactors.length > 2
         print network.query_gene
-        print "\t", network.interactors.length
-        print "\t", network.max_depth
-        
+        print "\t", network.interactors
         puts 
 
-'''            print "\n", network.interactors_within(gene_list: gene_list)
+'''     print "\n", network.interactors_within(gene_list: gene_list)
         puts
         puts'''
     end
 }
-#InteractionNetwork.find_interactions(gene_list[0..-1])
+
+InteractionNetwork.get_all_networks[..3].each do |network|
+
+    puts network.features.class
+    network.interactors.each { |gene|
+
+        puts network.features.search_go(gene_id: gene)
+        puts
+    
+    }
+
+    puts
+    puts
+
+end 
+
+
+### -----Find the GO biological activity and KEGG pathways for each network----- ###
 

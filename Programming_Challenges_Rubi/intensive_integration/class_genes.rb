@@ -2,13 +2,14 @@
 require 'rest-client'
 require 'json'
 
-class Genes
-    atrr_accesor :gene_id 
-    atrr_accesor :go_terms
-    atrr_accesor :kegg_id
-    atrr_accesor :pathway
+class GeneFeatures
+    attr_accessor :gene_id 
+    attr_accessor :go_terms
+    attr_accessor :kegg_id
+    attr_accessor :pathway
 
     def search_go(gene_id:)
+        gene_id = gene_id.to_s
         address ="http://togows.dbcls.jp/entry/uniprot/#{@gene_id}/dr.json"
         response = RestClient::Request.execute(method: :get,  url: address) 
         go_terms=[]
@@ -19,7 +20,7 @@ class Genes
     end
 
     def search_kegg(gene_id:)
-
+        gene_id = gene_id.to_s
         address ="http://togows.org/entry/uniprot/#{@gene_id}/dr.json"
         response = RestClient::Request.execute(method: :get, url: address)  
         JSON.parse(response.body)[0]['KEGG'].each do |kegg|

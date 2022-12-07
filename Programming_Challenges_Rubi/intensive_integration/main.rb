@@ -43,23 +43,20 @@ File.foreach("./documents/ArabidopsisSubNetwork_GeneList.txt"){ |line|
 ########### --------------- Main Cycle ---------------- ##########
 
 InteractionNetwork.find_interactions(gene_list: gene_list)
-    
+
 gene_list.each {|gene|
 
-    network = InteractionNetwork.new(gene: gene, max_depth: 25)
-    if network.interactors_within(gene_list: gene_list).length > 2
+    network = InteractionNetwork.new(gene: gene, max_depth: 3)
+    if network.interactors.length > 2
         print network.query_gene
         print "\t", network.interactors.length
-        print "\t", network.depth
-        '''
-        print "\n", network.interactors
-        print "\t", @@interaction_dict[gene.to_sym].length unless @@interaction_dict[gene.to_sym].nil?
-        '''
+        print "\t", network.max_depth
+        
         puts 
 
-        print "\n", network.interactors_within(gene_list: gene_list)
+'''            print "\n", network.interactors_within(gene_list: gene_list)
         puts
-        puts
+        puts'''
     end
 }
 #InteractionNetwork.find_interactions(gene_list[0..-1])

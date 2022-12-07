@@ -4,21 +4,17 @@ class InteractionNetwork
     
     attr_accessor :query_gene
     attr_accessor :interactors
-    attr_accessor :depth
+    attr_accessor :max_depth
 
     @@interaction_dict = {}
-    @@network_depth = 0
 
     def initialize(gene:, interaction_dict: @@interaction_dict, max_depth: 3)
     
-        print "\nFinding interactions with depth..."
-
         @query_gene = gene.to_sym
         @interactors = InteractionNetwork.network(gene_id: gene, \
-                                                from_dict: interaction_dict, \
+                                                from_hash: interaction_dict, \
                                                 max_depth: max_depth)
-        @depth = @@network_depth
-        @@network_depth = 0
+        @max_depth = max_depth
     
     end
 
@@ -94,57 +90,35 @@ class InteractionNetwork
 
     private
 
-    def InteractionNetwork.network(gene_id:, from_dict: @@interaction_dict, max_depth: 3)
+    def InteractionNetwork.network(gene_id:, from_hash: @@interaction_dict, max_depth: 3, analysed_genes: Array.new)
       
-        if @@interaction_dict.empty? then
-            abort("Aborting: No interactions provided, find interactions before building the network.")
+        if from_hash.empty? then
+            abort("Aborting: No interaction Hash provided, find interactions before building the network.")
         end
+                
+        gene_id = gene_id.to_sym        # Convert gene_id to symbol
 
-        if @@network_depth >= max_depth
-            return []
-        else
-            @@network_depth += 1
-            print ", #{@@network_depth}"
-            network = [gene_id.to_sym]
-            interactors = @@interaction_dict[gene_id.to_sym]
+        network = [gene_id]             # Create an interaction network array
 
-            unless interactors.nil?
-                network += interactors
-                interactors.each {|int| network += network(gene_id: int, max_depth: max_depth)}
-            end
-            return network.uniq
+        # If the current gene is not in the interaction hash or the list of interactors is empty return the network array
+        return network if !(from_hash.include?(gene_id)) || from_hash[gene_id].empty?
+ 
+        analysed_genes << gene_id
+
+        # Get the list of genes that interact with the current gene
+        interactors = from_hash[gene_id]
+
+        # If the depth is greater than 0, continue recursively calling the function.
+        if max_depth > 0        
+            interactors.each { |interactor|
+
+                # In the interactors have not been previously analysed, run the function recursively over them
+                unless analysed_genes.include?(interactor)
+                    network += network(gene_id: interactor, max_depth: max_depth-1,\
+                                        analysed_genes: analysed_genes)
+                end }                 
         end
+        return network
     end
-    
-    gene_list = Array.new
-    File.foreach("./documents/ArabidopsisSubNetwork_GeneList.txt"){ |line|
-        gene = line.gsub("\n",'')        # We eliminate metacharacter \n
-        unless gene.match(/AT\dG\d{5}/i) # Check if genes belong to Arabidopsis and save each gene in the array.
-            abort("ERROR: the gene list have some errors. #{gene} has not correct format") 
-        end
-        gene_list <<  gene.upcase!}
-    
-    
-    InteractionNetwork.find_interactions(gene_list: gene_list)
-    
-    gene_list.each {|gene|
-
-        network = InteractionNetwork.new(gene: gene, max_depth: 125)
-        if network.interactors_within(gene_list: gene_list).length > 2
-            print network.query_gene
-            print "\t", network.interactors.length
-            print "\t", network.depth
-            '''
-            print "\n", network.interactors
-            print "\t", @@interaction_dict[gene.to_sym].length unless @@interaction_dict[gene.to_sym].nil?
-            '''
-            puts 
-
-            print "\n", network.interactors_within(gene_list: gene_list)
-            puts
-            puts
-        end
-      }
-
-    
+        
 end

@@ -122,8 +122,6 @@ class Data_base
 
             next unless feature.feature == "exon"
 
-            exon_range = feature.position.split("..").map{|s| s.to_i}
-
             feature.locations.each do |loc|
 
                 strand = feature.locations[0].strand

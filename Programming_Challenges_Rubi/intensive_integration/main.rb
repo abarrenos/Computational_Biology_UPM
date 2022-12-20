@@ -35,8 +35,8 @@ gene_list = Array.new       # Creating an empty array for saving each gene of th
 # Source: https://www.rubyguides.com/2015/05/working-with-files-ruby/
 
 File.foreach("./documents/ArabidopsisSubNetwork_GeneList.txt"){ |line|
-    gene = line.gsub("\n",'')        # We eliminate metacharacter \n
-    unless gene.match(/AT\dG\d{5}/i) # Check if genes belong to Arabidopsis and save each gene in the array.
+    gene = line.gsub("\n",'')               # We eliminate metacharacter \n
+    unless gene.match(/AT\dG\d{5}/i)        # Check if genes belong to Arabidopsis and save each gene in the array.
         abort("ERROR: the gene list have some errors. #{gene} has not correct format") 
     end
     gene_list <<  gene.upcase!}
@@ -47,7 +47,7 @@ InteractionNetwork.find_interactions(gene_list: gene_list)
 
 gene_list.each {|gene|
 
-    network = InteractionNetwork.new(gene: gene, max_depth: 5)
+    network = InteractionNetwork.new(gene: gene, max_depth: 4)
     if network.interactors.length > 2
         print network.query_gene
         print "\t", network.interactors
@@ -58,7 +58,7 @@ gene_list.each {|gene|
         puts'''
     end
 }
-
+'''
 InteractionNetwork.get_all_networks[..3].each do |network|
 
     puts network.features.class
@@ -73,7 +73,7 @@ InteractionNetwork.get_all_networks[..3].each do |network|
     puts
 
 end 
-
+'''
 
 ### -----Find the GO biological activity and KEGG pathways for each network----- ###
 

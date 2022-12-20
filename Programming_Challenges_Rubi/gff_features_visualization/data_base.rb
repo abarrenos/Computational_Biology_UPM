@@ -4,14 +4,13 @@ require 'bio'
 
 # == Data_base
 #
-# Class that searches for genes based on gene IDs into EMBL-EBI database, for storing and retrieving information about genes.
+# Class that searches for genes based on gene IDs into EMBL-EBI database, stores and retrieves information about gene sequences and features.
 # 
 # == Summary
 #
-# This class can be used to retrieve features and information about the genes.
-# The class has four instance variables: gene_id, file_path, sequence, and @@genelist.
-# The gene_id and file_path variables are accessible through read and write attributes (attr_accessor).
-# The @@genelist variable is a class variable that is an array and is used to store a list of genes.
+# This class can be used to retrieve gene information, sequence and features in GFF-3 format from Ensembl Genomes Gene database.
+# The instance attributes gene_id, sequence and file_path variables are accessible for read and write (attr_accessor).
+# The @@genelist class variable is an array to store a list of genes.
 #
 # @authors Julian Elijah Politsch, Angelo D'angelo, Alberto Gonzalez, Adrian Barreno, Pablo Mata
 class Data_base
@@ -25,10 +24,12 @@ class Data_base
     # @!Attribute [rw]
     # @return [String] a gene sequence.
     attr_accessor :sequence
+
     # Array of arrays containing the start and stop positions of each exon and its full sequence.
     # @!attribute [rw]
-    # @return [Array] array of arrays containing exon information.
+    # @return [Array] array of arrays containing exon information.    
     attr_accessor :exon_seqs
+
     # Feature information in forward position (GFF3 format).
     # @!attribute [rw]
     # @return [Set] feature information.
@@ -49,12 +50,8 @@ class Data_base
     # The initialize method is a constructor that is called when a new instance of the Data_base class is created. 
     # It takes two arguments: gene_id and file_path, and sets the values of the corresponding instance variables.
     #
-    # @param gene_id [String]
-    # @param file_path [String]
-    # @param exon_seqs [Array]
-    # @param forward_features [Set]
-    # @param reverse_features [Set]
-    # @return [Data_base]
+    # @param gene_id [string] a gene ID
+    # @param file_path [string] a file containing gene IDs
     def initialize(gene_id:, sequence: nil, exon_seqs: nil, forward_features: nil, reverse_features: nil)
         @gene_id = gene_id
         @sequence = sequence
@@ -69,8 +66,8 @@ class Data_base
     # If the file does exist, it reads the contents of the file and checks each line to see if it is a valid gene ID. If it is not, it aborts the program with an error message.
     # If the line is a valid gene ID, it is added to the @@gene_list array.
     #
-    # @param file_path [String] takes the path to the specified file containing gene IDs
-    # @return [Array<String>] an array with the gene IDs
+    # @param file_path [string] takes the path to the specified file containing gene IDs
+    # @return [array<string>] an array with the gene IDs
     def self.get_genelist(file_path:)
         @@file_path = file_path
         unless File.file?(file_path) #Checking if the file path is correct
@@ -89,15 +86,14 @@ class Data_base
 
     end
     
-    #The self.get_sequences method is a class method that takes a gene_id argument and returns a list of sequences for the specified gene.
-    #It first retrieves the sequences for the gene from a remote database, and saves them in the @@sequences_list array. 
-    #It then retrieves information about the positions of exons in the gene, and saves them in the @@exon_seqs array. Finally, it returns the @@sequences_list array.
+    # The self.get_sequences method is a class method that takes a gene_id argument and returns a Data_base object with information about the
+    # given gene. First, it fetches the full gene sequence from a the remote database, and saves it in the @sequence attribute. It then retrieves
+    # information about the positions of exons in the gene, and saves them in the @exon_seqs array. Finally, it searches CTTCTT repeates within the exons and
+    # annotates the features at forward and reverse strands in GFF-3 format.
     #
-    # @param gene_id [String] takes a single gene_id
-    # @return [Data_base]
+    # @param gene_id [string] takes a single gene_id
+    # @return list [Array<String>]
     def self.get_sequence(gene_id:)
-
-        #This function retreives a list in which the sequences of the genes are contained (header = True ) from a specified gene ID
 
         forward_positions = Set[]
         reverse_positions = Set[]
@@ -144,7 +140,8 @@ class Data_base
 
                     location.each do |loc|
 
-                        forward_positions.add(["Chr#{chromosome}", "Ruby", "repeat_component", loc[0], loc[1], ".", "+", ".", "Type = Forward_CTTCTT; Gene_ID = #{gene_id}"])
+                        forward_positions.add(["Chr#{chromosome}", "Ruby", "repeat_component", loc[0], loc[1], ".", "+", ".", "Type=Forward_CTTCTT; Gene_Id=#{gene_id}"])
+                    
                     end
 
                 end
@@ -159,7 +156,7 @@ class Data_base
 
                     location.each do |loc|
 
-                        reverse_positions.add(["Chr#{chromosome}", "Ruby", "repeat_component", loc[0], loc[1], ".", "-", ".", "Type = Reverse_CTTCTT; Gene_ID = #{gene_id}"])
+                        reverse_positions.add(["Chr#{chromosome}", "Ruby", "repeat_component", loc[0], loc[1], ".", "-", ".", "Type=Reverse_CTTCTT; Gene_Id=#{gene_id}"])
 
                     end
                 end

@@ -49,8 +49,12 @@ class Data_base
     # The initialize method is a constructor that is called when a new instance of the Data_base class is created. 
     # It takes two arguments: gene_id and file_path, and sets the values of the corresponding instance variables.
     #
-    # @param gene_id [string] a gene ID
-    # @param file_path [string] a file containing gene IDs
+    # @param gene_id [String]
+    # @param file_path [String]
+    # @param exon_seqs [Array]
+    # @param forward_features [Set]
+    # @param reverse_features [Set]
+    # @return [Data_base]
     def initialize(gene_id:, sequence: nil, exon_seqs: nil, forward_features: nil, reverse_features: nil)
         @gene_id = gene_id
         @sequence = sequence
@@ -65,8 +69,8 @@ class Data_base
     # If the file does exist, it reads the contents of the file and checks each line to see if it is a valid gene ID. If it is not, it aborts the program with an error message.
     # If the line is a valid gene ID, it is added to the @@gene_list array.
     #
-    # @param file_path [string] takes the path to the specified file containing gene IDs
-    # @return [array<string>] an array with the gene IDs
+    # @param file_path [String] takes the path to the specified file containing gene IDs
+    # @return [Array<String>] an array with the gene IDs
     def self.get_genelist(file_path:)
         @@file_path = file_path
         unless File.file?(file_path) #Checking if the file path is correct
@@ -89,8 +93,8 @@ class Data_base
     #It first retrieves the sequences for the gene from a remote database, and saves them in the @@sequences_list array. 
     #It then retrieves information about the positions of exons in the gene, and saves them in the @@exon_seqs array. Finally, it returns the @@sequences_list array.
     #
-    # @param gene_id [string] takes a single gene_id
-    # @return list [Array<String>]
+    # @param gene_id [String] takes a single gene_id
+    # @return [Data_base]
     def self.get_sequence(gene_id:)
 
         #This function retreives a list in which the sequences of the genes are contained (header = True ) from a specified gene ID

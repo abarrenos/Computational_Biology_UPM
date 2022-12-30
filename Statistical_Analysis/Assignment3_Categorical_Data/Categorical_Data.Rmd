@@ -1,0 +1,183 @@
+---
+title: "Categorical_Data"
+author: "Adrian_Barreno"
+date: "2022-12-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Categorical Data Analysis
+
+In this work, I will analyse the data from a publication that studies the employs liquid biopsy to analyse peripheral blood biomarkers in patients diagnosed with exocrine pancreatic cancer [1]. The dataset I will analyse, DAT4, contains the following variables:
+
+-   *Edad* (age)
+-   *Sexo* (sex)
+-   *TimeASE* (time since diagnosis)
+-   *Status* -event (dead) or censored (alive)-
+-   *CTC* (circulating tumour cells)
+-   *Mutant* (mutant KRAS)
+-   *Group* -resectable (R), locally advanced (LA) or metastatic (M)
+
+```{r echo=FALSE}
+load("DatosCTC.RData")
+df <- DAT4
+head(df)
+str(df)
+```
+
+The aim of this assignment is to study the relation between the categorical variables *Sex, CTC, Mutant* and *Group*, and the mortality of patients, *Status*. The complete code used for the assignment can be found in the following [R file](https://github.com/abarrenos/Computational_Biology_UPM/tree/main/Statistical_Analysis/Assignment3_Categorical_Data/Categorical_Data.R) within the current working directory.
+
+## 2x2 Contingency Tables
+
+First, I built 2x2 contingency tables to represent the events observed for the different pairs of factors. Since *Group* factor has 3 levels, *Group-Status* contingency table has 3X2 dimensions. Then I performed Pearson's Chi-squared tests to compare the observed distribution of cell counts to the expected distribution if paired variables were independent of each other, that is, the product of the row and column marginals divided by the total number of observations.
+
+```{r Tables Chisq, echo=TRUE, warning=FALSE}
+## Table Mutant - Status
+(mutant <- table(df$Mutant, df$status))
+chisq.test(mutant)
+
+## Table Group - Status
+(group <- table(relevel(df$group, ref = "R"), df$status))
+chisq.test(group)
+
+## Table Sex - Status
+(sex <- table(df$sexo, df$status))  
+chisq.test(sex)
+
+## Table CTC - Status
+(ctc <- table(df$CTC, df$status))   
+chisq.test(ctc)
+```
+
+For *Mutant, Group, Sex* and *CTC* tables, I obtained p-values of p = 0.081, p = 0.002, p = 0.519 and p = 0.186, respectively. This suggests that there is a significant relationship between the *Group* and mortality (p \< 0.05) but not between any other factor and mortality.
+
+Next, I performed a Fisher's exact test to test the significance of the pairwise association between variables using a more accurate statistical method. Fisher's test is typically used to analyse contingency tables when sample sizes are small.
+
+```{r Fisher pval, echo=TRUE}
+## Fisher Exact Test p values
+
+# Mutant - Status
+(fisher_mutant <- fisher.test(mutant))$p.value
+# Group - Status
+(fisher_group <- fisher.test(group))$p.value
+# Sex - Status
+(fisher_sex <- fisher.test(sex))$p.value
+# CTC - Status
+(fisher_ctc <- fisher.test(ctc))$p.value
+```
+
+As we can see, these p-values are quite similar to the ones obtained with the Pearson's Chi-squared test, supporting the finding that *Group* (p = 0.002) is the only factor with a significant association with the target variable *Status*.
+
+Moreover, Fisher test function calculates the Odds Ratio (OR) given a particular 2x2 contingency table, yet it does not calculate OR for tables with different dimensions, therefore no OR will be returned for the factor *Group*.
+
+```{r Fisher OR, echo=TRUE}
+fisher  <- cbind(rbind(fisher_sex$estimate, fisher_ctc$estimate, fisher_mutant$estimate), 
+          rbind(fisher_sex$conf.int, fisher_ctc$conf.int, fisher_mutant$conf.int,
+          deparse.level = 2), rbind(fisher_sex$p.value, fisher_ctc$p.value,
+          fisher_mutant$p.value))
+
+colnames(fisher) <- c("odds raio", "CI low", "CI high", "p-value")
+
+fisher
+```
+
+## Logistic models
+
+Now, I will proceed building different logistic regression models to analyze the relationship of each categorical factor with the target variable *Status*. Logistic regression models are widely used to estimate the probability of a particular event to occur. This probability is modeled through the logit function:
+
+$$
+Pr(Y_i=1|X_i) = {\frac{exp(\beta_0 + \beta_1X_i + \beta_2X_2 + \beta_3X_3 + ... +\beta_NX_N)}{1 + exp (\beta_0 + \beta_1X_i + \beta_2X_2 + \beta_3X_3 + ... + \beta_NX_N)}}
+$$
+
+Moreover, the coefficients from our logistic models can be transformed to obtain the Odds Ratio for each feature with respect to mortality, considering: $$
+Odds Ratio (OR) = {\frac{P(Y=1)}{1-P(Y=1)}} =  exp(\beta_1)
+$$
+
+```{r Logistic models, echo=TRUE, message=FALSE}
+## Build Logistic Models for each categorical feature
+
+# MUTANT - STATUS
+mutant_lm = glm(status ~ Mutant, data = df, family = binomial)
+summary(mutant_lm)
+round(exp(cbind(OR = coef(mutant_lm), confint(mutant_lm))), 3)
+
+# GROUP - STATUS
+df$group <- relevel(df$group, ref ="R")   # Use 'R' level as reference for Group
+group_lm = glm(status ~ group, data = df, family = binomial)
+summary(group_lm)
+round(exp(cbind(OR = coef(group_lm), confint(group_lm))), 3)
+
+# SEX - STATUS
+sex_lm = glm(status ~ sexo, data = df, family = binomial)
+summary(sex_lm)
+round(exp(cbind(OR = coef(sex_lm), confint(sex_lm))), 3)
+
+# CTC - STATUS
+ctc_lm = glm(status ~ CTC, data = df, family = binomial)
+summary(ctc_lm)
+round(exp(cbind(OR = coef(ctc_lm), confint(ctc_lm))), 3)
+```
+
+As we can see, *Group* factor is significantly associated with mortality (*Status*) with the following Odds Ratios (OR): 5.625 and 20, and 95% Confidence Intervals (IC): [1.154, 33.085] and [3.621, 171.979] for *'LA'* group and *'M'* group as compared to *'R'* group.
+
+For the categorical features *Mutant, Sex* and *CTC* we obtained the following OR: 7.89, 1.82 and 5.71, and their 95% CI: [1.292, 153.217], [0.534, 6.453] and [0.907, 111.860], respectively. Among them, only *Mutant* factor shows a significant OR , since it does not include 1 within its confidence interval.
+
+## Predictive model and ROC Curve
+
+Next, I aim to build a logistic model to predict the *Status* of a given individual based on the categorical features obtained in the liquid biopsy. To do so, I will identify the best combination of informative features to include in my model using the Akaike criteria. Using the *step* function I will compare different models and select the one with the lowest Akaike value (AIC).
+
+```{r Akaike, echo=TRUE}
+## Model Selection Using Akaike (AIC)
+step(glm(status ~ sexo + CTC + Mutant + group, data = df, family = "binomial"))
+```
+
+After a few steps, this iterative method identified the best model, which considers the categorical variables *Mutant* and *Group* as best estimator features (AIC = 44.72). I will evaluate the performance of this predictive model, calculating its accuracy and its Area Under ROC Curve (AUC).
+
+```{r Final model, echo=TRUE, message=FALSE, warning=FALSE}
+best_model <- glm(status ~ Mutant + group, data = df, family = "binomial")
+
+library(pROC)
+# Predict Status probabilities.
+prob <- predict(object = best_model, newdata = df, type = "response")
+# Compare predictions with real values and measure performance
+predictions <- ifelse(prob > 0.5, "event", "censored")
+# Accuracy
+print(paste("Accuracy:", round(mean(predictions == DAT4$status), 3)))
+roc_curve = roc(DAT4$status ~ prob, plot = TRUE, print.auc = TRUE)
+
+```
+
+With this model, we obtained an accuracy of 0.82 and an AUC of 0.86. However, this results were obtained when predicting the *Status* of the same data I used for training the model. If we want to properly evaluate the model we need to perform a Cross Validation (CV).
+
+## Cross Validation
+
+I will specifically perform a K-fold CV, in which the dataset is subsampled into K subsets. One of the subsets is preserved for testing while the others are used to fit the model. The process is repeated K times rotating the test subset, and the average performance is returned. I will perform a 3-fold CV and use accuracy as a metric.
+
+```{r Cross Val, echo=TRUE, message=FALSE, warning=FALSE}
+library("caret")
+set.seed(0) # Ensure reproducibility
+crossval <- trainControl(method = "cv", number = 3)
+cross_model <- train(status ~ Mutant + group, data = DAT4,
+method = "glm", family=binomial(), trControl = crossval,
+metric = "Accuracy")
+cross_model
+```
+
+We obtained a final average accuracy of 0.818 for our model, which is quite good. This model could be efficient and accurate to make predictions on patient survival based on liquid biopsy features *Group* and *Mutant.*
+
+## References
+
+-   <https://modernstatisticswithr.com/>
+
+-   <https://quantifyinghealth.com/logistic-regression-in-r-with-categorical-variables/>
+
+-   <https://sciphy-stats.com/post/interpreting-logistic-regression-coefficients-odds-ratios/>
+
+-   Robin, X., Turck, N., Hainard, A. *et al.* pROC: an open-source package for R and S+ to analyze and compare ROC. *BMC Bioinformatics* **12**, 77 (2011). <https://doi.org/10.1186/1471-2105-12-77>
+
+-   <https://www.machinelearningplus.com/machine-learning/caret-package/>
+
+-   <https://topepo.github.io/caret/index.html>

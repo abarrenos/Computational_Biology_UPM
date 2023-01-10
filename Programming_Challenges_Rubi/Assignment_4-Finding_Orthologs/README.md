@@ -16,7 +16,7 @@ We performed bibliographic and webpage research to understand the function of di
 
 After a quick search, we discovered that the filtering of low information sequence segments significantly affects the alignment scores and, therefore, optimises the election of best hits [[Wootton and Federhen (1996)](https://academic.oup.com/bioinformatics/article/24/3/319/252715?login=false)].For this reason, we decided to filter low-complexity sequences within out input query sequences with the option ("-F T"). Regions with low-complexity sequences -for instance, the protein sequence PPDPPPPPDKKKKDPPP- have an unusual poorly-variable composition that can create problems in sequence similarity search, artificially producing high hit scores [NCBI Webpage](https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=BlastHelp). For our particular case (amino acid queries), we use the SEG method to identify and mask low-complexity regions [[Wootton & Federhen (1996)](https://www.sciencedirect.com/science/article/abs/pii/S0076687996660352?via%3Dihub)].
 
-Besides filtering low-complexity sequences, we did not filter the hits obtained in the BLAST options. Instead, for each Blasting, we saved a report containing the best hit for every query sequence (without filtering) and hit information: e-value, identity, overlap, bit score and query and target sequences. Then we used these information to filter the Blast results a posteriori.
+Besides filtering low-complexity sequences, we did not filter the hits obtained in the BLAST options. Instead, for each Blasting, we saved a report containing the best hit for every query sequence (without filtering) and hit information: e-value, identity, overlap, bit score and query and target sequences. Then we used these information to filter the Blast results a posteriori. For further filtering of hits, we fixed an e-value threshold of e < 1e-10 and a similarity threshold of > 50% of the query sequence.
 
 
 ## Requirements:
@@ -27,7 +27,16 @@ gem install bio-gem
 ```
 * [Fasta files](https://drive.google.com/drive/folders/0B7FLMiAz5IXPTWJDSkk1MTFPMjg?resourcekey=0-yhXCH6PxXIvg9xwMSolpMw)
 
-* BLAST-formatted databases are created within the script
+* BLAST-formatted databases. We generated these databases with the following commands:
+
+For Arabidopsis genome database
+```
+makeblastdb -in files/TAIR10_cds_20101214_updated.fa -dbtype 'nucl' -out databases/TAIR 2> /dev/null"
+```
+For S. pombe proteome database
+```
+makeblastdb -in files/pep.fa -dbtype 'prot' -out databases/spombe 2> /dev/null
+```
 
 ## Usage:
 
@@ -46,19 +55,10 @@ ruby main.rb <Arabidopsis_Database> <S_pombe_Database> <Arabidopsis.fa>  <S_pomb
 4. **S_pombe.fa**
 
 ## Output
-- blast_results.txt contains the results of the BLAST after quality filtering as well as other statistical information following the next format:
-   >Query_ID|Target_ID|e-value|identity%
-   - Query_sequence
-   - Target_sequence
+- reciprocal_best_hits.txt contains the results of the BLAST best reciprocal hits after quality filtering.
 
-- Query_ID is the sequence ID in the S. pombe proteome.
-- Target_ID is the ID of the sequence in the Arabidopsis genome
-- e-value is the e-value of the blast hit between these two sequences.
-- identity% is the percentaje of the sequences that are the same divided by the total length of the overlap
+- Some other text files (first_blast_unfiltered.txt and second_blast_unfiltered.txt) will be generated in the process and can be used to obtain more info about each blast.
 
-- Some other text files (first_blast.txt and second_blast.txt) will be generated in the process and can be used to obtain more info about each blast.
-
-The command line output is verbose, some of which will be saved into a [output txt file](documents/). 
 
 ## Bonus Point:
 
@@ -74,8 +74,6 @@ There are several steps that can be taken to further analyze putative orthologue
 
 * Gabriel Moreno-Hagelsieb, Kristen Latimer. (2008). Choosing BLAST options for better detection of orthologs as reciprocal best hits, Bioinformatics, Volume 24, Issue 3, 1, Pages 319–324. doi.org/10.1093/bioinformatics/btm585
 
-* Wootton, J. C., & Federhen, S. (1996). Analysis of compositionally biased regions in sequence databases. Computer Methods for Macromolecular Sequence Analysis, 554–571. doi:10.1016/s0076-6879(96)66035-2
-
-* NCBI Webpage
+* Wootton, J. C., & Federhen, S. (1996). Analysis of compositionally biased regions in sequence databases. Computer Methods for Macromolecular Sequence Analysis, 554–571. doi:10.1016/s0076-6879(96)66035-2 
 
 

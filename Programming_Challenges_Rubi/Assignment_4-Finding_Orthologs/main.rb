@@ -34,7 +34,7 @@ arabidopsis_db_path =  ARGV[0]
 spombe_db_path =  ARGV[1]
 
 # Create a BLAST factory for each species
-#system("makeblastdb -in files/TAIR10_cds_20101214_updated.fa -dbtype 'prot' -out databases/TAIR 2> /dev/null")
+#system("makeblastdb -in files/TAIR10_cds_20101214_updated.fa -dbtype 'nucl' -out databases/TAIR 2> /dev/null")
 #system("makeblastdb -in files/pep.fa -dbtype 'prot' -out databases/spombe 2> /dev/null")
 arabidopsis_factory = Bio::Blast.local('tblastn', arabidopsis_db_path, "-F T")  # protein query nucleic database
 spombe_factory = Bio::Blast.local('blastx', spombe_db_path, "-F T")             # nucleic query protein database
@@ -53,7 +53,6 @@ puts ''
 
 ### ------------------ FIRST BLAST ------------------- ###
 
-'''
 # Create a file to save the unfiltered results of Arabidopsis BLAST on S. pombe genome. This
 # way we can adjust data filtering a posteriori without needing to repeat the Blast.
 first_blast = File.new("files/first_blast_unfiltered.txt", "w")
@@ -86,7 +85,7 @@ arabidopsis_fasta.each_entry do |arabidopsis_seq|
 end
 
 first_blast.close()
-'''
+
 
 # We now retrieve the results of the first Blast into a new Hash
 first_hits = Hash.new
@@ -99,8 +98,7 @@ File.readlines("files/first_blast_unfiltered.txt", chomp:true).each{ |hit|
     target = hit.split("\t")[1].strip
     evalue = hit.split("\t")[2].strip.to_f
     perc_identity = 100 * (hit.split("\t")[3].strip.to_f) / (hit.split("\t")[7].length) # Identity / query sequence length
-    puts perc_identity
-    puts    
+     
     if evalue <= 1e-10 && perc_identity >= 50                             # e-value < 1e-5 and identity > 50%
       first_hits[query] = target
     end
@@ -118,7 +116,6 @@ sleep 1
 
 ### ----------------- SECOND BLAST ------------------ ###
 
-'''
 # Create a file to save the unfiltered results of the reciprocal BLAST of S. pombe sequences on
 # Arabidopsis genome.
 second_blast = File.new("files/second_blast_unfiltered.txt", "w")
@@ -154,7 +151,7 @@ spombe_fasta.each_entry do |spombe_seq|
 end
 
 second_blast.close()
-'''
+
 
 # We now retrieve the results of the second Blast into a new Hash applying identity filters.
 second_hits = Hash.new
@@ -169,7 +166,6 @@ File.readlines("files/second_blast_unfiltered.txt", chomp:true).each{ |hit|
 
     if evalue <= 1e-10 && perc_identity >= 50                             # # e-value < 1e-5 and identity > 50%
       second_hits[query] = target
-      #puts query, target, evalue, perc_identity
     end
   end
 }

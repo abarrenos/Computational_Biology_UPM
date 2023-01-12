@@ -1,0 +1,18 @@
+Receptor
+4xv1_clean.pdb
+
+RMSD
+1.0
+
+Binding pocket
+-9.988 16.025
+-9.102 4.463
+-26.819 -12.544
+
+Number of binding poses
+20
+
+Ligands list
+ligands
+
+END

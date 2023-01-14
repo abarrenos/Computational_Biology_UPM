@@ -1,0 +1,5 @@
+Protein BRAF V600E (PDB: 4xv2)
+Ligand Dabrafenib (P06) 
+
+Binding center Chain A: (-0.3668, -3.1906571, -20.677143)
+Binding center Chain B: (-3.8276572, -1.0898571, 6.133)

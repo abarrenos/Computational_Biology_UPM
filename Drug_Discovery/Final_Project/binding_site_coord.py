@@ -1,12 +1,8 @@
 ### Get coordinates of the binding site center in Chain A (mean of the PDB_4xv2 ligand Dabrafenib)
 
+from sys import argv
 from Bio.PDB.PDBParser import PDBParser
 import statistics
-
-parser = PDBParser(PERMISSIVE=1)
-structure = parser.get_structure("Dabrafenib", "./files/Ligand_4xv2_ChA.pdb")
-model = structure[0]
-ligand = model.get_list()[0].get_list()[0]
 
 def get_coords(PDB_ligand):
     parser = PDBParser(PERMISSIVE=1)
@@ -30,5 +26,5 @@ def get_coords(PDB_ligand):
 
     return(mean_x, mean_y, mean_z)
 
-print("Binding center Chain A:", get_coords("./files/Ligand_4xv2_ChA.pdb"))
-print("Binding center Chain B:", get_coords("./files/Ligand_4xv2_ChB.pdb"))
+print("Binding center Chain A:", get_coords(str(argv[1])))
+# print("Binding center Chain B:", get_coords(str(argv[1])))

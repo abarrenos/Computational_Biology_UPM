@@ -1,3 +1,11 @@
+
+Protein BRAF V600E (PDB: 3og7)
+Ligand Vemurafenib (P06) 
+
+Binding center Chain A: (1.8685151, -2.6376667, -19.917727)
+
+
+
 Protein BRAF V600E (PDB: 4xv2)
 Ligand Dabrafenib (P06) 
 

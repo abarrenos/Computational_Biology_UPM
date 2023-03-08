@@ -1,0 +1,110 @@
+---
+title: "Correspondance_Analysis_Assignment"
+date: "2023-01-12"
+output: pdf_document
+---
+
+#### Group 3: Ana K. Ballesteros, Adrian Barreno, Pablo Mata y Marina Ortega
+
+The cars.xls file includes a data set from random samples in different European countries, of car brands (identified as A, B, C and D). The objective is to determine the degree of association between brands and countries. Each country has a certain brand profile, and each brand has a certain distribution by country. The task is to prepare a report with all the results indicated below. Students' personal comments should be added interpreting the results, in a Word file (any other alternative text editor can be used).
+
+## 1) Read and explore the data file cars.xls
+
+We set up the working directory and load the data file using R Commander.
+
+```{r Load R Commander, message=FALSE, warning=FALSE, include=FALSE}
+library(Rcmdr)
+```
+
+```{r Load data, echo=TRUE, warning=FALSE}
+setwd("C:/Users/adrib/Desktop/bioinformatic_course/statistical_analysis/4. Model selection/Correspondence Analysis")
+Data_CA <- readXL("C:/Users/adrib/Desktop/bioinformatic_course/statistical_analysis/4. Model selection/Correspondence Analysis/cars.xls", rownames=FALSE, header=TRUE, na="", sheet="Sheet1", stringsAsFactors=TRUE)
+
+head(Data_CA)
+```
+
+Next, we rename to the rows as the labels in *Country* variable to facilitate the interpretation of the graph. This way we generate a contingency table that will be used for further correspondence analysis.
+
+```{r Modify table, echo=TRUE, warning=FALSE}
+rownames(Data_CA)=Data_CA[,1]
+Data_CA = Data_CA[,2:5]
+head(Data_CA)
+```
+
+## 2) Perform the Correspondence Analysis using all countries and brands.
+
+We will perform Correspondence Analysis using all data from our contingency table and plot the corresponding factor map. In these maps, we can represent our multidimensional data along two synthetic dimensions, respecting the original relative position of the original points.
+
+```{r Correspondance Analysis, message=FALSE}
+library("FactoMineR")
+options(ggrepel.max.overlaps = Inf)
+res <- CA(Data_CA, ncp=5, graph = TRUE)
+```
+
+In this plot, we can observe clear associations between countries and how these countries are related with specific car brands, based on the euclidean distance of the points. For instance, in the top part of Dimension 2, we can that UK and Ireland are closely associated and related with the car brand "D". At the right of the plot, we observe that Norway and Finland profiles are strongly related, similarly to Poland and Sweden. These countries, and Russia to a larger extent, are related to the car brand "C".
+
+Some other strong associations can be seen of the Mediterranean countries (Portugal, Greece, Spain, Italy) and Serbia and the brand "A"; and between Belgium, Holland, Check Rep., Germany and Switzerland, with brand "B".
+
+## 3) Interpret the variances of the axes, the absolute and relative contributions, and the inertia
+
+Next, we will print and analyse the values obtained from the analyses of the columns and rows profiles
+
+```{r Abs contributions, echo=TRUE}
+res$col$contrib
+res$row$contrib
+```
+
+Above we can see the *absolute contribution* of columns and rows for the formation of each dimension (axes). We see that car brand "C" has the greatest weight in the formation of axis 1 and brand "B" in the construction of axis 2. Therefore, these are the variables that better differentiate between countries, while "B" is the less informative brand.
+
+Regarding the *absolute contribution* of rows, we can see that Russia has the greatest weight in dimension 1, followed by Norway and Finland, thus they are related to brand "C". Similarly, UK and Ireland have the greatest weight in the formation of axis 2, showing a close relation with brand "B".
+
+```{r Rel contributions, echo=TRUE}
+res$col$cos2
+res$row$cos2
+```
+
+Above we can see the *relative contributions* of the columns and rows, that is, the weight of each dimension in the explanation of column and row profiles respectively. We can see that car brand "B" distribution is mainly explained by dimension 1 (93%), while brands "A" and "D" distribution is better explained by dimension 2 (58.8% and 75.5%) than by dimension 1 (13.3% and 20.2% respectively). Importantly, the combination of both dimensions only explains 22.85% of "C" brand distribution.
+
+Regarding the *relative contributions* of rows, we can see that countries previously related with brand "B" (Finland, Sweden, Norway, Russia and Poland) are explained by dimension 1 by more than 90%. In a similar way, countries associated with brands "A" (average 56%) and "D" (average 74%), and importantly Hungary (95%), are better explained by dimension 2. In contrast, countries related with brand "C" (Holland, Belgium, Germany, Check Rep and Switzerland) are poorly explained by both dimensions.
+
+```{r Intertias, echo=TRUE, message=FALSE}
+writeLines("Columns inertia:")
+res$col$inertia
+writeLines("\nRows inertia:")
+res$row$inertia
+```
+
+The total inertia is calculated from the squares of the profile coordinates. The row inertia or column inertia is the average of the squared distances from each row point to the center of gravity. Inertias do not add up to unity so they should only be interpreted in comparative or relative terms between profiles. It indicates the relative weight or importance of each profile.
+
+A low inertia means that all products are located very close to the center of gravity, i.e. they are very similar, while having a high inertia implies that there are large differences between the average profile of rows or columns (depending on what we are talking about).
+
+Regarding the car brands we can say that the brand that has the highest relative weight among the four existences is brand C with an inertia very similar to brand D, well above the inertias of A and B. When talking about the countries we can observe that the ones with the highest inertia with respect to the rest are Russia, UK and Ireland.
+
+```{r Eigenvalues, echo=TRUE, message=FALSE}
+res$eig
+```
+
+The res\$eig eigenvalues show the percentage of variance of the axes and the cumulative percentages. The study of the percentage of variance explained by axes is used to identify the number of components to use.
+
+Thus, observing the results obtained, that the best decision is to use dim1 (48.7%) and dim2 (38.8%) since they summarize 87.5% of the original set of variables, therefore, interpretations and conclusions will be made with respect to the first and only factorial plane.
+
+```{r Factoextra library, echo=TRUE, message=FALSE}
+library("factoextra")
+fviz_ca_row(res, col.row = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"), 
+             repel = TRUE)
+```
+
+The absolute contribution variables help us to better understand the axes, since they indicate the weight of the variable in the formation of each of the axes. These graphs help us to observe this. The graph with a heatmap indicates which are the variables that contribute most to the formation of the axes, these are the ones in orange/red color.
+
+In this case we see the variables of the rows that contribute more to the formation of these axes, and as we said before and corroborating the result, those that contribute more to the formation of the dim2 are Ireland and UK and to the formation of the dim1 Russia.
+
+```{r Factoextra library 2, echo=TRUE, message=FALSE}
+library("factoextra")
+fviz_contrib(res, choice = "col", axes = 1, top = 10)
+fviz_contrib(res, choice = "col", axes = 2, top = 10)
+```
+
+To see which variables of the columns, car brands, contributed more to the formation of the axes, we used these bar charts that show us very well which variable contributes more or less. Thus we corroborated the results obtained previously, the variable that contributes the most to dim1 is C and the one that contributes the most to dim2 is D.
+
+The objective of this work was to determine the degree of association between car brands and countries. So, after performing these analyses we could conclude that car brand D is largely associated with UK and Ireland. The country with the highest association with car brand C would be Russia followed by Norway and Finland. Finally, car brand A would be strongly associated with Mediterranean countries (Portugal, Greece, Spain, Italy) and car brand B with Belgium, Holland, Check Rep., Germany and Switzerland.

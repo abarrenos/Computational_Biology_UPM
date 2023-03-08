@@ -1,0 +1,132 @@
+---
+title: "Factorial_Analysis_Assignment"
+date: "2023-01-07"
+output: pdf_document
+---
+
+#### Group 3: Ana K. Ballesteros, Adrian Barreno, Pablo Mata y Marina Ortega
+
+The lagos.xls file includes a data set with limnological variables of several neotropical lakes that points out the productivity degree (concentration of nutrients, dissolved organic carbon) and the habitat adequacy for life (depth, pH, conductivity, dissolved oxygen, temperature). These two factors, productivity and adequacy, could reasonably explain the correlation observed between the different variables. The objective of the factor analysis in this context is to check if this model is adequate to explain the data.
+
+## 1) Read, from R Commander, the Excel data file lakes.xls
+
+Setting up the working directory and loading the data
+
+```{r Load R Commander, message=FALSE, warning=FALSE, include=FALSE}
+library(Rcmdr)
+```
+
+```{r Load data, echo=TRUE, warning=FALSE}
+setwd("C:/Users/adrib/Desktop/bioinformatic_course/statistical_analysis/4. Model selection/Factorial Analysis")
+
+DataFA <- 
+  readXL("C:/Users/adrib/Desktop/bioinformatic_course/statistical_analysis/4. Model selection/Factorial Analysis/lakes.xls",
+   rownames=FALSE, header=TRUE, na="", sheet="Hoja1", stringsAsFactors=TRUE)
+
+head(DataFA)
+```
+
+With a quick inspection we can see that most variables are quantitative, which is specially good for this analysis as we can only use quantitative variables. Neither "Area" nor "lake" can be used for the factor analysis as they are qualitative, so from the total 13 variables, we use only 11 for the next steps. Also, we found no missing values.
+
+```{r Numerical summary, echo=TRUE, warning=FALSE}
+numSummary(DataFA[,c("Carbon", "Conductivity", "Depth", "NH4", "NO2", 
+  "NO3", "Oxygen", "pH", "PO4", "SiO2", "Temperature"), drop=FALSE], 
+  statistics=c("mean", "sd", "IQR", "quantiles"), quantiles=c(0,.25,.5,.75,1))
+```
+
+## 2) Check if the variables are correlated, calculating the correlation matrix of the quantitative variables, as well as the p-values matrix.
+
+The most important condition that we must check for the correct application of FA is the correlation between the original variables. In order to be suitable for a factor analysis, these variables must be highly correlated or completely independent because the partial correlation does not contribute to the justification of the factors chosen. The smaller the sum of the partial correlations, the more adequate the data will be for the factorial model.
+
+```{r Correlation Analysis, message=FALSE}
+library(lattice, pos=17)
+library(survival, pos=17)
+library(Formula, pos=17)
+library(ggplot2, pos=17)
+library(Hmisc, pos=17)
+rcorr.adjust(DataFA[,c("Carbon","Conductivity","Depth","NH4","NO2","NO3","Oxygen","pH",
+  "PO4","SiO2","Temperature")], type="pearson", use="complete")
+```
+
+We used pearson correlation as the measure for the correlation matrix. In this case, most correlation values are below absolute 0.7 which is a bad sign regarding the factory analysis. When no clear correlation can be made between the variables, the factors are most likely going to be not well-defined and may have partial loadings for most variables instead of having high loadings for those variables more related to a factor and low loadings for those not correlated to them.
+
+Furthermore, the p-values are expected to show very low values, the opposite as the ones for the correlation scores, which is not the case. As it can be seen, specially in the adjusted p-value matrix, most of them are equal to 1 or close to 1, which might imply a strong validation of the null hypothesis.
+
+Despite this unpleasant expectations, we continued with the Factor Analysis.
+
+## 3&5) Apply Factor Analysis, with a two-factor model, to all quantitative variables. Interpret the results.
+
+As the way of estimating model coefficients or loadings is not determined: there are infinite ways of arranging the variables into two factors, hence infinite solutions. Even when a solution is found, it can be transformed into a new new valid solution through rotations.Therefore, it is possible to use these rotations in order to find a solution that allows a better interpretation of the model.
+
+### A) Varimax Rotation
+
+```{r FA Varimax, echo=TRUE, message=FALSE}
+local({
+  .FA <- 
+  factanal(~Carbon+Conductivity+Depth+NH4+NO2+NO3+Oxygen+pH+PO4+SiO2+Temperature, 
+  factors=2, rotation="varimax", scores="none", data=DataFA)
+  print(.FA, cutoff = .5, sort = TRUE)
+  })
+
+```
+
+We decided to use Varimax rotation first as it performs the best for this case, where we are reducing a lot of variables to a small number of factors (only 2). We decided to use a cutoff of 0.5 to show only the variables with the highest loadings. The p-value is well below 0.05 so we can accept this model as statistically viable. Nonetheless, the variables included in each factor are quite distant from what was hypothesized.
+
+The communalities are the part of the variance explained by the common factors. The higher the communalities, the better the factorial model works. Communality can be inferred from uniqueness as its equal to 1-uniqueness value. In this case, only Depth and Temperature showed a high communality (low uniqueness), being the only ones that respond well to the model. The rest of the variables are not quietly well explained by the model, as they show a uniqueness superior to 0.1.
+
+The loadings are supposed to represent the association between that variable and the factors. Along with the initial hypothesis, nutrients (NO2, NO3, PO4, NH4, SiO2) and carbon should have high loadings for one of the factors, whilst depth, pH, conductivity, oxygen and temperature should do the same for the other one. Nonetheless, it can clearly be seen that this is not the case, as most variables are grouped into factor 1, which tends to invalidate the initial hypothesis.
+
+### B) Promax Rotation
+
+```{r FA Promax, echo=TRUE, message=FALSE}
+local({
+  .FA2 <- 
+  factanal(~Carbon+Conductivity+Depth+NH4+NO2+NO3+Oxygen+pH+PO4+SiO2+Temperature, 
+  factors=2, rotation="promax", scores="none", data=DataFA)
+  print(.FA2, cutoff = .5, sort = TRUE)
+
+})
+```
+
+As an add-on to our analysis, we also incorporated Promax as an oblique rotation representative to be used as a comparison with the previous results. As it may improve interpretability, although sacrificing independence of the variables in the process.
+
+The uniqueness values stayed relatively the same and even though the loadings changed a little bit, the conclusion is that the loadings do not satisfy the expected ones for the *a priori* proposed factors in the initial hypothesis, as most variables are mixed within factor 1.
+
+## 4) Calculate and interpret the KMO index
+
+```{r KMO Index, echo=TRUE, message=FALSE}
+R2 = cor(DataFA[,3:13])^2     # square of the correl. coeff.
+R2.suma = sum(R2)-dim(R2)[1]  # sum
+RP2 = partial.cor(DataFA[,3:13])$R^2
+RP2.suma = sum(RP2)           # sum square of partial correl. coeff.
+kmo = R2.suma/(R2.suma + RP2.suma)  # compute KMO
+print(paste("KMO Index:", round(kmo, 3)))     # ourput the result
+```
+
+KMO = 0.656 implies that the adequacy of the sample data to the factorial model is only regular. This is pretty much consistent with the previous hypothesis based on the preliminary analysis of the data.
+
+## 5) Build and interpret the loadings plot (you can use the plot and text commands in the example).
+
+```{r Loading plots, echo=TRUE, message=FALSE}
+
+.FA <- 
+factanal(~Carbon+Conductivity+Depth+NH4+NO2+NO3+Oxygen+pH+PO4+SiO2+Temperature, 
+factors=2, rotation="varimax", scores="none", data=DataFA)
+plot(.FA$loadings, type="n") #display the graphic
+text(.FA$loadings, labels=row.names(.FA$loadings),cex=.75)
+
+.FA2 <- 
+factanal(~Carbon+Conductivity+Depth+NH4+NO2+NO3+Oxygen+pH+PO4+SiO2+Temperature, 
+factors=2, rotation="promax", scores="none", data=DataFA)
+plot(.FA2$loadings, type="n") #display the graphic
+text(.FA2$loadings, labels=row.names(.FA2$loadings),cex=.75)
+
+```
+
+In these plots we can visualize a graphic representation of the previous loading's tables, one for Varimax rotation, and another for Promax rotation.
+
+This 2-D representation uses the factors as the axes, being factor 1 the horizontal axes and factor 2 the vertical one. The location of the variable in the plot is determined by the loadings of each factor.
+
+As it happened with the tables, the displacement of the different variables in the two plots are quite similar. Factor 1 is highly influential for variables NH4 (although very low), PO4, NO2, SiO2, Temperature, Carbon on the positive scale, while Oxygen and Depth on the negative scale. On the other hand factor 2 has a higher influence for pH, NO3, Carbon (also low and negatively) and conductivity, although this last variable also has a very high loading for factor 1.
+
+In conclusion, the factors obtained through Factor Analysis do not allocate the corresponding variables of the factors from the initial hypothesis. Hence, the hypothesis cannot be accepted.

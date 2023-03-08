@@ -1,0 +1,116 @@
+---
+title: "PCA_Analysis_Assignment"
+date: "2023-01-07"
+output: pdf_document
+---
+
+#### Group 3: Ana K. Ballesteros, Adrian Barreno, Pablo Mata y Marina Ortega
+
+In the phytoplankton.xls file there are data on the count of five species of phytoplankton algae present in lakes of different geographical regions at two different times of the year. The aim is to determine if it is possible to explain the differences in the composition of species with information related to the region, lake, and time of the year.
+
+## 1) Read, from R Commander, the Excel data file phytoplankton.xls
+
+Setting up the working directory and loading the data
+
+```{r Load R Commander, echo=TRUE, message=FALSE, warning=FALSE}
+library(Rcmdr)
+```
+
+```{r Load data, echo=TRUE, warning=FALSE}
+setwd("C:/Users/adrib/Desktop/bioinformatic_course/statistical_analysis/4. Model selection/PCA")
+
+PCA_Dataset <- readXL("C:/Users/adrib/Desktop/bioinformatic_course/statistical_analysis/4. Model selection/PCA/fitoplancton.xlsx",
+   rownames=FALSE, header=TRUE, na="", sheet="fitoplancton", 
+  stringsAsFactors=TRUE)
+
+head(PCA_Dataset)
+```
+
+Here we can see part of the dataset, we have 5 quantitative variables (that corresponds with the count of individuals of the different 5 species considered) and 3 categorical variables (that corresponds with region, lake and time for each observation). First I want to see some basic statistics of the different phytoplankton species:
+
+```{r Numerical summary, echo=TRUE, warning=FALSE}
+numSummary(PCA_Dataset[,c("Bacillariophyceae", "Chlorococales", 
+  "Cianophyceae", "Euglenophyceae", "Zygophyceae"), drop=FALSE], 
+  statistics=c("mean", "sd", "IQR", "quantiles"), quantiles=c(0,.25,.5,.75,1))
+```
+
+## 2) Check if the variables are correlated, calculating the correlation matrix of the 5 quantitative variables, as well as the p-values matrix.
+
+First, we will calculate the Pearson's correlation, the pairwise step-two values and the adjusted p-values by the Holms method (similar to Bonferroni) for the different phytoplankton species (quantitative variables).
+
+```{r Correlation Analysis, message=FALSE}
+library(lattice, pos=20)
+library(survival, pos=20)
+library(Formula, pos=20)
+library(ggplot2, pos=20)
+library(Hmisc, pos=20)
+rcorr.adjust(PCA_Dataset[,c("Bacillariophyceae","Chlorococales",
+  "Cianophyceae","Euglenophyceae","Zygophyceae")], type="pearson", 
+  use="complete")
+```
+
+The correlation coefficients obtained don not seem to be very high, we have obtained -0.3151, -0.3586, 0.3726, 0.4330, 0.5675 as the highest correlation values. They represent a moderate correlation which is negative for *Bacillariophyceae* and *Zygophyceae* (correlation value = -0.3151) and for *Cianophyceae* and *Euglenophyceae* (-0.3586).
+
+However, based on the results present in the Adjusted p-value with the Holm's Method, we can say that there is a significant correlation between those variables (species) where the p-value \< 0,05. This correlation is present between *Cianophyceae* and *Chlorococales* (p-value \< 0.0001), between *Euglenophyceae* and *Bacillariophyceae* (p-value = 0.0049), between *Euglenophyceae* and *Cianophyceae* (p-value = 0.0343), and between *Zygophyceae* and *Chlorococales* (p-value = 0.0269).
+
+Since at least some features are correlated in our dataset, we can proceed with the Principal Component Analysis.
+
+## 3 & 4) Apply PCA to the 5 variables, obtaining and saving 2 components (the choice of this number must be justified). Use the covariance matrix (not correlations). Build and interpret the sedimentation graph.
+
+We proceed to perform the Principal Component Analysis. To do this, we compute the eigenvectors and eigenvalues of the covariance matrix instead of using the correlation matrix, since all the quantitative features are homogeneous, that is, they use the same scale (total counts).
+
+Above we can see the component *loadings* (weights) for the original features, the *score* variance and the proportion of variance explained by each component. The component variances are also represented in a sedimentation graph, which often helps us to decide the final number of Principal Components to retain.
+
+As we can see, the first Principal Component shows a variance of 70.51, which explains almost half (49.04%) of the total data variance. The second principal Component's variance is less than half of the first component's, variation, and both components together explain a cumulative 71.63% of the total variance. Considering that this proportion of variance is large enough, the poorly significant increase in explained variance from 2 to 3 Principal Components, and the possibility of representing graphically the component scores in 2 dimensions, we decided to choose just 2 Principal Components to continue our analysis.
+
+Analyzing the loadings, we can see that the counts of *Euglenophyceae* species is the most relevant feature (largest weight) for the first Principal Component, while *Chlorococales* species has the greatest weight for the second Component. These weights can be easily visualize using a loading plot.
+
+## 5) Build and interpret the loadings plot (you can use the plot and text commands in the example.
+
+```{r Loading plots, echo=TRUE, message=FALSE}
+.PC <-
+princomp(~Bacillariophyceae+Chlorococales+Cianophyceae+Euglenophyceae+Zygophyceae,
+cor=FALSE, data=PCA_Dataset) 
+plot(.PC$loadings, type="n", xlim = c(-0.4,1), ylim = c(0,0.8)) # display the graphic
+text(.PC$loadings, labels=row.names(.PC$loadings),cex=.75)
+```
+
+Principal Components are obtained form the linear combination of the original data features. The loading plot represents the values of the coefficients (loadings) attributed to the original features for each Principal Component. The higher the absolute value of the loading, the greater the importance of the feature for a particular component.
+
+The variables that seem to be more related to the first component are the ones that are further away horizontally from 0: *Euglenophyceae* (0.87)and, to a lesser extent, *Bacillariophyceae* (0.32). On the contrary, those variables that are more relevant for the second component are the ones that are further away vertically from 0: mainly *Chlorococales* (0.78)and, to a lesser extent, *Cyanophyceae* (0.42).
+
+## 6) Represent, by means of a scatter plot, the scores of the two main components saved, using region marks. Build another two scatter plots with "lake" and "time" marks. Interpret the three graphics.
+
+Once we choose the Principal Components, we obtain the *scores* (values) of these components for each sample, which are already appended to the dataset, and represent them in a scatter plot. These way, we can identify relationships between our categorical and quantitative features.
+
+***Region***
+
+```{r Region plot, echo=TRUE, message=FALSE}
+scatterplot(PC2~PC1 | Region, regLine=FALSE, smooth=FALSE, 
+            id=list(method='mahal', n=2), boxplots=FALSE, by.groups=TRUE,
+            data=PCA_Dataset)
+```
+
+In this plot, we can see that the samples from Amazon lakes show a higher score on the first Principal Component, and therefore it might be a differentiative characteristic of this region. Andes and Caribbean samples are difficult to differentiate from each other, since both show a low score in the first Component and a high variability in the second Component's score.
+
+***Lake***
+
+```{r Lake plot, echo=TRUE, warning=FALSE}
+scatterplot(PC2~PC1 | Lake, regLine=FALSE, smooth=FALSE, 
+  id=list(method='mahal', n=2), boxplots=FALSE, by.groups=TRUE, 
+  data=PCA_Dataset)
+```
+
+In this plot, we can see the component scores for the different samples coloured by the lake where they were obtained. Principal Components 1 and 2 can help us to cluster samples based on the lake of origin.
+
+We can identify some lakes with well clustered and differentiated samples, such as Iguaque and Tota, while some others have a greater variability is component scores, such as S. Sebastian and Tarapoto. This allows us to explain in a more complete way how the lake is related with the composition of the species.
+
+***Time***
+
+```{r Time plot, echo=TRUE, warning=FALSE}
+scatterplot(PC2~PC1 | Time, regLine=FALSE, smooth=FALSE, 
+  id=list(method='mahal', n=2), boxplots=FALSE, by.groups=TRUE, 
+  data=PCA_Dataset)
+```
+
+In this plot, we represented the Principal Component scores colored by the time of the year at which the samples were taken. We can see that component 2 is highly related with the division between the period of the year: low waters samples show higher PC2 score, while high waters samples have a lower PC2 scores. However, a small number of samples do not follow this correlation.
